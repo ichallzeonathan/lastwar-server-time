@@ -1,45 +1,239 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Jam Real-Time</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Jam Server LastWar - Live</title>
   <style>
-    body {
-      background: #0a0f16;
-      color: #00ffe0;
+    :root{
+      --bg:#071022;
+      --accent:#00ffd1;
+      --accent2:#ff4d7e;
+      --muted:#9fb3c8;
+      --card:#081825;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:linear-gradient(180deg,var(--bg), #02111a);
+      color:var(--accent);
+      font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
+      padding:24px;
+    }
+    .wrap{
+      width:100%;
+      max-width:880px;
+      background:var(--card);
+      border-radius:14px;
+      padding:22px;
+      box-shadow:0 10px 30px rgba(0,0,0,0.6);
+      border:1px solid rgba(255,255,255,0.03);
+    }
+    h1{margin:0 0 8px 0;font-size:20px;color:var(--accent2)}
+    .row{display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+    .card{
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:10px;
+      padding:12px 16px;
+      min-width:200px;
+      flex:1;
+      color:var(--accent);
+      border:1px solid rgba(255,255,255,0.03);
+    }
+    .label{font-size:12px;color:var(--muted);margin-bottom:6px}
+    .time{
       font-family: "Orbitron", monospace;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
+      font-size:28px;
+      letter-spacing:2px;
     }
-    h1 {
-      color: #ff0055;
-      font-size: 1.5em;
-      margin-bottom: 10px;
-      letter-spacing: 2px;
+    .small{font-size:13px;color:var(--muted)}
+    .controls{margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    input[type="number"]{
+      width:90px;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);
+      background:transparent;color:var(--accent);
     }
-    #clock {
-      font-size: 3em;
+    button{
+      background:var(--accent2);color:white;border:none;padding:8px 12px;border-radius:8px;cursor:pointer;
+    }
+    .countdown{font-size:20px;font-family: Inter, Arial; color:#fff; background: rgba(0,0,0,0.12); padding:8px 10px; border-radius:8px; display:inline-block}
+    footer{margin-top:14px;color:var(--muted);font-size:13px}
+    @media(max-width:620px){
+      .time{font-size:22px}
     }
   </style>
 </head>
 <body>
-  <h1>🕒 JAM SERVER LASTWAR</h1>
-  <div id="clock">00:00:00</div>
+  <div class="wrap">
+    <h1>🕒 Jam Server LastWar — Live Demo</h1>
+    <div class="row" style="margin-bottom:12px">
+      <div class="card">
+        <div class="label">Waktu Lokal (WIB - Asia/Jakarta)</div>
+        <div id="wibTime" class="time">--:--:--</div>
+        <div class="small">Zona: <strong>Asia/Jakarta (WIB)</strong></div>
+      </div>
+
+      <div class="card">
+        <div class="label">Waktu Server LastWar</div>
+        <div id="serverTime" class="time">--:--:--</div>
+        <div class="small" id="offsetText">Offset: -9 jam dari WIB (default)</div>
+      </div>
+
+      <div class="card">
+        <div class="label">Countdown ke Reset Server (setiap hari jam 09:00 server)</div>
+        <div id="countdown" class="countdown">--:--:--:--</div>
+        <div class="small" id="targetInfo">Target: 09:00:00 (server)</div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <label class="small" for="offset">Atur offset server (dari WIB, jam):</label>
+      <input id="offset" type="number" step="1" value="-9" title="Masukkan offset jam server relatif ke WIB" />
+      <button id="applyBtn">Terapkan</button>
+
+      <div style="margin-left:auto" class="small">Contoh default: -9 → artinya <strong>Server = WIB - 9 jam</strong></div>
+    </div>
+
+    <footer>
+      Tip: ubah offset kalau ternyata jam server punya perbedaan zona lain. Halaman ini menampilkan WIB (Asia/Jakarta) sebagai acuan, lalu menghitung jam server berdasarkan offset.
+    </footer>
+  </div>
 
   <script>
-    function updateClock() {
-      const now = new Date()
-      const jam = String(now.getHours()).padStart(2, '0')
-      const menit = String(now.getMinutes()).padStart(2, '0')
-      const detik = String(now.getSeconds()).padStart(2, '0')
-      document.getElementById('clock').textContent = `${jam}:${menit}:${detik}`
+    // --- Pengaturan awal ---
+    // defaultOffsetHours = -9 (sesuai percakapan: WIB 17:45 => Server 08:45)
+    let offsetHours = Number(document.getElementById('offset').value) || -9;
+    const resetHourServer = 9; // reset di jam 09:00:00 server setiap hari
+
+    // Elemen
+    const wibEl = document.getElementById('wibTime');
+    const serverEl = document.getElementById('serverTime');
+    const countdownEl = document.getElementById('countdown');
+    const offsetText = document.getElementById('offsetText');
+    const targetInfo = document.getElementById('targetInfo');
+
+    // Update offset UI
+    function updateOffsetText() {
+      offsetText.textContent = `Offset: ${offsetHours >= 0 ? '+'+offsetHours : offsetHours} jam dari WIB`;
     }
-    setInterval(updateClock, 1000)
-    updateClock()
+    updateOffsetText();
+
+    // Utility: pad 2 digits
+    function pad(n){ return String(n).padStart(2,'0') }
+
+    // Get UTC milliseconds
+    function nowUtcMs(){
+      // Date.now() is local ms; get UTC by adding local timezone offset
+      return Date.now() + (new Date().getTimezoneOffset() * 60000);
+    }
+
+    // Compute WIB ms (UTC +7)
+    function nowWibMs(){
+      return nowUtcMs() + (7 * 3600000);
+    }
+
+    // Compute server ms based on offset from WIB
+    function nowServerMs(){
+      return nowWibMs() + (offsetHours * 3600000);
+    }
+
+    // Format time HH:MM:SS from ms epoch
+    function formatHMSFromMs(ms){
+      const d = new Date(ms);
+      return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}`;
+      // Note: use UTC fields because we pass ms already shifted to desired timezone
+    }
+
+    // Calculate next reset server ms (target at resetHourServer:00:00)
+    function nextResetMs(serverMs){
+      // serverMs is epoch ms where 0 = UTC epoch but shifted such that its UTC fields correspond to server local
+      // to get the server local date parts:
+      const serverDate = new Date(serverMs);
+      const year = serverDate.getUTCFullYear();
+      const month = serverDate.getUTCMonth();
+      const day = serverDate.getUTCDate();
+
+      // build target at today's resetHourServer in server "local" (UTC fields)
+      const todayTarget = Date.UTC(year, month, day, resetHourServer, 0, 0);
+      if (todayTarget > serverMs) return todayTarget;
+      // else next day
+      const tomorrow = new Date(serverMs + 24 * 3600 * 1000);
+      const ty = tomorrow.getUTCFullYear();
+      const tm = tomorrow.getUTCMonth();
+      const td = tomorrow.getUTCDate();
+      return Date.UTC(ty, tm, td, resetHourServer, 0, 0);
+    }
+
+    // Convert milliseconds to days/hours/minutes/seconds
+    function msToDHMS(ms){
+      if (ms < 0) ms = 0;
+      let s = Math.floor(ms / 1000);
+      const days = Math.floor(s / 86400); s %= 86400;
+      const hours = Math.floor(s / 3600); s %= 3600;
+      const minutes = Math.floor(s / 60); const seconds = s % 60;
+      return { days, hours, minutes, seconds };
+    }
+
+    // Main update loop
+    function refreshAll(){
+      const wibMs = nowWibMs();
+      const serverMs = nowServerMs();
+
+      // Display WIB time
+      wibEl.textContent = formatHMSFromMs(wibMs) + ` WIB`;
+
+      // Display Server time
+      serverEl.textContent = formatHMSFromMs(serverMs) + ` (Server)`;
+
+      // Compute next reset and countdown
+      const targetMs = nextResetMs(serverMs);
+      const diff = targetMs - serverMs;
+      const t = msToDHMS(diff);
+      const dd = t.days ? (t.days + 'd ') : '';
+      countdownEl.textContent = `${dd}${pad(t.hours)}:${pad(t.minutes)}:${pad(t.seconds)}`;
+
+      // Update info
+      const targetDate = new Date(targetMs);
+      // targetDate's UTC fields represent server local time
+      targetInfo.textContent = `Target reset (server): ${pad(targetDate.getUTCHours())}:${pad(targetDate.getUTCMinutes())}:${pad(targetDate.getUTCSeconds())} (tanggal: ${targetDate.getUTCFullYear()}-${pad(targetDate.getUTCMonth()+1)}-${pad(targetDate.getUTCDate())})`;
+    }
+
+    // Run per second, but align to real seconds
+    let tickTimer = null;
+    function startTick(){
+      if (tickTimer) clearInterval(tickTimer);
+      refreshAll();
+      // align to next full second
+      const msToNextSecond = 1000 - (Date.now() % 1000);
+      setTimeout(() => {
+        refreshAll();
+        tickTimer = setInterval(refreshAll, 1000);
+      }, msToNextSecond);
+    }
+    startTick();
+
+    // Controls: apply offset
+    document.getElementById('applyBtn').addEventListener('click', () => {
+      const v = Number(document.getElementById('offset').value);
+      if (isNaN(v)){
+        alert('Offset harus angka (misal -9 atau 0 atau 2)');
+        return;
+      }
+      offsetHours = v;
+      updateOffsetText();
+      startTick();
+    });
+
+    // Allow pressing Enter in offset input
+    document.getElementById('offset').addEventListener('keydown', (e)=>{
+      if (e.key === 'Enter') document.getElementById('applyBtn').click();
+    });
+
+    // Initial explanatory note (console)
+    console.log('Jam Server LastWar siap. Default offset:', offsetHours, 'jam (dari WIB). Reset di jam', resetHourServer, 'server.');
   </script>
 </body>
 </html>
