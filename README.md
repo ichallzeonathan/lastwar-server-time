@@ -1,1 +1,1 @@
-# lastwar-server-time
+# time server lastwar
