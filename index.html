@@ -1,418 +1,209 @@
 <!DOCTYPE html>
-
 <html lang="id">
-
 <head>
-
     <meta charset="UTF-8">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Proyek Web Tech - Time Server LastWar</title>
-
     <style>
-
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
         body {
-
             font-family: 'Arial', sans-serif;
-
             background: linear-gradient(135deg, #0a0a23 0%, #1a1a3e 50%, #16213e 100%);
-
             color: #ffffff;
-
             min-height: 100vh;
-
             overflow-x: hidden;
-
             position: relative;
-
         }
-
         body::before {
-
             content: '';
-
             position: fixed;
-
             top: 0;
-
             left: -100%;
-
             width: 100%;
-
             height: 100%;
-
             background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.08), transparent);
-
             animation: shimmer 2.5s infinite;
-
             z-index: -1;
-
         }
-
         @keyframes shimmer { 0% { left: -100%; } 100% { left: 100%; } }
-
         .electric-flow {
-
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; overflow: hidden;
-
         }
-
         .electric-line {
-
             position: absolute; width: 2px; height: 150vh; background: linear-gradient(to bottom, transparent, #00ffff, #00bfff, transparent); opacity: 0.7;
-
             animation: flowDownSmooth 6s linear infinite; box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
-
         }
-
         .electric-line:nth-child(1) { left: 10%; animation-delay: 0s; }
-
         .electric-line:nth-child(2) { left: 25%; animation-delay: 1s; }
-
         .electric-line:nth-child(3) { left: 40%; animation-delay: 2s; }
-
         .electric-line:nth-child(4) { left: 60%; animation-delay: 3s; }
-
         .electric-line:nth-child(5) { left: 75%; animation-delay: 4s; }
-
         .electric-line:nth-child(6) { left: 90%; animation-delay: 5s; }
-
         @keyframes flowDownSmooth { 0% { transform: translateY(0); } 100% { transform: translateY(-50vh); } }
-
         .title {
-
             position: fixed; top: 20px; left: 50%; transform: translateX(-50%); z-index: 10;
-
             font-family: 'Courier New', monospace; font-size: 1.8em; font-weight: bold; color: #ffffff; text-align: center; white-space: nowrap;
-
             background: rgba(0, 0, 0, 0.6); padding: 10px 20px; border-radius: 10px; border: 1px solid rgba(0, 255, 255, 0.3);
-
             backdrop-filter: blur(5px); text-shadow: 0 0 5px rgba(255,255,255,0.8), 0 0 10px rgba(255,255,255,0.6), 0 0 15px rgba(0,255,255,0.7), 0 0 25px rgba(0,255,255,0.5), 0 0 35px rgba(0,255,255,0.3);
-
             animation: fadeInGlow 2s ease-in-out infinite alternate; letter-spacing: 1px; opacity: 0.95;
-
         }
-
         @keyframes fadeInGlow {
-
             0% { opacity: 0.95; text-shadow: 0 0 5px rgba(255,255,255,0.8), 0 0 10px rgba(255,255,255,0.6), 0 0 15px rgba(0,255,255,0.7), 0 0 25px rgba(0,255,255,0.5), 0 0 35px rgba(0,255,255,0.3); }
-
             100% { opacity: 1; text-shadow: 0 0 8px rgba(255,255,255,1), 0 0 15px rgba(255,255,255,0.8), 0 0 20px rgba(0,255,255,0.9), 0 0 30px rgba(0,255,255,0.7), 0 0 45px rgba(0,255,255,0.4); }
-
         }
-
         .clock-container {
-
             position: fixed; top: 50px; /* Geser lebih dekat lagi ke judul (ke 50px seperti permintaan) */
-
             left: 50%; transform: translateX(-50%); z-index: 10;
-
             display: flex; align-items: flex-start; justify-content: center; gap: 10px;
-
             background: rgba(0, 0, 0, 0.6); padding: 10px 15px; border-radius: 10px; border: 1px solid rgba(0, 255, 255, 0.3);
-
             backdrop-filter: blur(5px); box-shadow: 0 0 15px rgba(0, 255, 255, 0.2); flex-wrap: nowrap;
-
             position: relative; /* Biar indikator absolute relatif ke container ini */
-
         }
-
         .clock-local, .clock-server {
-
             display: flex; flex-direction: column; align-items: center;
-
             min-width: 120px; /* Lebar minimal biar rapi */
-
             position: relative; /* Biar indikator absolute di dalam server */
-
         }
-
         .clock-label { font-family: 'Courier New', monospace; font-weight: bold; color: #ffffff; font-size: 0.6em; text-shadow: 0 0 5px rgba(255,255,255,0.5); margin-bottom: 3px; display: block; text-align: center; }
-
         .clock-time { font-family: 'Courier New', monospace; font-weight: bold; color: #ffffff; font-size: 30px; text-shadow: 0 0 5px rgba(255,255,255,0.8), 0 0 10px rgba(0,255,255,0.5); letter-spacing: 1px; }
-
         .clock-date { /* Untuk tanggal server */
-
             font-family: 'Courier New', monospace; font-weight: normal; color: #cccccc; font-size: 0.8em; 
-
             text-shadow: 0 0 3px rgba(255,255,255,0.3); margin-top: 2px; white-space: nowrap;
-
             text-align: center; max-width: 100%; overflow: hidden;
-
         }
-
         .loading { color: #ffff00; font-style: italic; animation: pulse 1s infinite; }
-
         @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-
         .divider { color: #00ffff; font-size: 30px; font-weight: bold; text-shadow: 0 0 5px rgba(0,255,255,0.8); margin: 0 5px; align-self: center; }
-
         /* Indikator ●: Di dalam clock-server, pojok kanan atas relatif ke panel server */
-
         .blink-indicator {
-
             position: absolute; top: 0; right: 0; /* Pojok kanan atas dari clock-server */
-
             color: #00ff00; font-size: 25px; /* Lebih kecil biar pas di sudut */
-
             text-shadow: 0 0 5px rgba(0,255,0,0.8); 
-
             animation: blink 1s infinite; z-index: 11; /* Di atas jam/tanggal */
-
             display: none; /* Awalnya hidden, muncul via JS setelah loading */
-
             margin: 0; /* Hilangkan margin biar tepat di sudut */
-
         }
-
         @keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0.3; } }
-
         .api-status {
-
             position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%); font-size: 0.8em; color: #00ff00; z-index: 5; opacity: 0; transition: opacity 0.3s;
-
         }
-
         .api-status.show { opacity: 1; }
-
         .api-status.error { color: #ff0000; }
-
         @media (max-width: 600px) {
-
             .title { font-size: 1.2em; top: 15px; padding: 8px 15px; letter-spacing: 0.5px; white-space: nowrap; }
-
             .clock-container { top: 40px; /* Lebih dekat lagi di mobile (ke 40px) */ padding: 8px 10px; gap: 5px; flex-shrink: 1; }
-
             .clock-time { font-size: 25px; letter-spacing: 0.5px; }
-
             .divider { font-size: 25px; }
-
             .clock-label { font-size: 0.5em; }
-
             .clock-date { font-size: 0.7em; }
-
             .blink-indicator { font-size: 20px; } /* Lebih kecil di mobile */
-
         }
-
     </style>
-
 </head>
-
 <body>
-
     <div class="electric-flow">
-
         <div class="electric-line"></div><div class="electric-line"></div><div class="electric-line"></div><div class="electric-line"></div><div class="electric-line"></div><div class="electric-line"></div>
-
     </div>
-
     <div class="title">Time Server LastWar</div>
-
     <div class="clock-container">
-
         <!-- Jam Lokal (tanpa tanggal) -->
-
         <div class="clock-local">
-
             <span class="clock-label">Local Time</span>
-
             <span class="clock-time" id="localTime">00:00:00</span>
-
         </div>
-
         <div class="divider">|</div>
-
         <!-- Jam Server dengan Tanggal & Indikator ● di sudut kanan atas panel -->
-
         <div class="clock-server">
-
             <span class="blink-indicator" id="blinkIndicator">●</span> <!-- Di dalam server, absolute positioned -->
-
             <span class="clock-label">Server Time (API WIB-9h)</span>
-
             <span class="clock-time" id="serverTime">Loading...</span>
-
             <span class="clock-date" id="serverDate">Loading...</span>
-
         </div>
-
     </div>
-
     <div class="api-status" id="apiStatus">Loading API...</div>
 
-
-
     <script>
-
         let serverTime = null;
-
         let clockInterval;
-
         let isApiLoaded = false;
 
-
-
         // Fungsi format waktu HH:MM:SS
-
         function formatTime(date) {
-
             const hours = date.getHours().toString().padStart(2, '0');
-
             const minutes = date.getMinutes().toString().padStart(2, '0');
-
             const seconds = date.getSeconds().toString().padStart(2, '0');
-
             return `${hours}:${minutes}:${seconds}`;
-
         }
-
-
 
         // Update jam lokal setiap detik (independen)
-
         function updateLocalTime() {
-
             const now = new Date();
-
             document.getElementById('localTime').textContent = formatTime(now);
-
         }
-
-
 
         // Fetch API untuk jam server (WIB fixed -9 jam)
-
         async function fetchServerTime() {
-
             try {
-
                 const res = await fetch('https://timeapi.io/api/Time/current/zone?timeZone=Asia/Jakarta');
-
                 if (!res.ok) throw new Error('API response not OK');
-
                 const data = await res.json();
-
                 serverTime = new Date(data.dateTime);
-
                 // Offset -9 jam untuk server (handle wrap date otomatis via Date object)
-
                 serverTime.setHours(serverTime.getHours() - 9);
-
                 isApiLoaded = true;
-
                 // Mulai clock server
-
                 startClock();
-
                 // Tampilkan indikator ● setelah loading (di sudut panel server)
-
                 document.getElementById('blinkIndicator').style.display = 'inline';
-
                 // Update status
-
                 const statusEl = document.getElementById('apiStatus');
-
                 statusEl.textContent = 'API Loaded - Server Sync OK';
-
                 statusEl.className = 'api-status show';
-
                 setTimeout(() => statusEl.classList.remove('show'), 3000);
-
             } catch (err) {
-
                 console.error("Error API:", err);
-
                 // Fallback: Gunakan waktu lokal sebagai base WIB simulasi, offset -9 jam
-
                 serverTime = new Date();
-
                 serverTime.setHours(serverTime.getHours() - 9); // Asumsi lokal ≈ WIB untuk fallback
-
                 isApiLoaded = false;
-
                 startClock();
-
                 // Tampilkan indikator ● meski fallback (server tetep "active")
-
                 document.getElementById('blinkIndicator').style.display = 'inline';
-
                 const statusEl = document.getElementById('apiStatus');
-
                 statusEl.textContent = 'API Error - Using Fallback Mode';
-
                 statusEl.className = 'api-status show error';
-
                 setTimeout(() => statusEl.classList.remove('show'), 5000);
-
             }
-
         }
-
-
 
         // Mulai increment jam server setiap detik + update tanggal
-
         function startClock() {
-
             // Update awal jam & tanggal
-
             document.getElementById('serverTime').textContent = formatTime(serverTime);
-
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-
             document.getElementById('serverDate').textContent = serverTime.toLocaleDateString('id-ID', options);
 
-
-
             // Interval setiap detik
-
             clockInterval = setInterval(() => {
-
                 if (serverTime) {
-
                     serverTime.setSeconds(serverTime.getSeconds() + 1);
-
                     document.getElementById('serverTime').textContent = formatTime(serverTime);
-
                     // Update tanggal kalau berubah (cross hari)
-
                     const newDateStr = serverTime.toLocaleDateString('id-ID', options);
-
                     const currentDateEl = document.getElementById('serverDate');
-
                     if (currentDateEl.textContent !== newDateStr) {
-
                         currentDateEl.textContent = newDateStr;
-
                     }
-
                 }
-
             }, 1000);
-
         }
 
-
-
         // Update jam lokal interval
-
         setInterval(updateLocalTime, 1000);
-
         updateLocalTime(); // Update awal lokal
 
-
-
         // Panggil API saat load
-
         fetchServerTime();
-
     </script>
-
 </body>
-
 </html>
-
